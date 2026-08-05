@@ -655,9 +655,8 @@ function MacLib:Window(Settings)
 	local defaultSidebarWidth = sidebar.AbsoluteSize.X
 	local initialMouseX, initialSidebarWidth
 	local snapRange = 20
-	local minSidebarWidth = 66
-	local sidebarCollapseAt = 150
-	local sidebarCollapsed = false
+	local minSidebarWidth = 107
+	local maxSidebarWidth = base.AbsoluteSize.X - minSidebarWidth
 	local refreshContentSize
 
 	-- window resize (bottom-right grip)
@@ -717,7 +716,6 @@ function MacLib:Window(Settings)
 		elseif resizingContent then
 			local deltaX = UserInputService:GetMouseLocation().X - initialMouseX
 			local newSidebarWidth = initialSidebarWidth + deltaX
-			local maxSidebarWidth = math.max(base.AbsoluteSize.X - 300, minSidebarWidth + 80)
 
 			if math.abs(newSidebarWidth - defaultSidebarWidth) < snapRange then
 				newSidebarWidth = defaultSidebarWidth
@@ -726,98 +724,9 @@ function MacLib:Window(Settings)
 			end
 
 			sidebar.Size = UDim2.new(0, newSidebarWidth, 1, 0)
+			content.Size = UDim2.new(0, base.AbsoluteSize.X - newSidebarWidth, 1, 0)
 		end
 	end)
-
-	-- ── Sidebar collapse (icons-only when dragged narrow) ──
-	local collapseTweenTime = 0.16
-
-	local function applyTabCollapse(tabInfo, collapsed)
-		if collapsed then
-			Tween(tabInfo.switcherName, TweenInfo.new(collapseTweenTime, TweenSettings.EasingStyle), {
-				TextTransparency = 1
-			}):Play()
-			tabInfo.switcherName.Size = UDim2.fromScale(0, 0)
-
-			if tabInfo.switcherLetter then
-				tabInfo.switcherLetter.Size = UDim2.fromScale(1, 0)
-				Tween(tabInfo.switcherLetter, TweenInfo.new(collapseTweenTime, TweenSettings.EasingStyle), {
-					TextTransparency = tabInfo.isActive and 0.1 or 0.5
-				}):Play()
-			end
-			if tabInfo.switcherImage then
-				Tween(tabInfo.switcherImage, TweenInfo.new(collapseTweenTime, TweenSettings.EasingStyle), {
-					ImageTransparency = tabInfo.isActive and 0 or 0.3
-				}):Play()
-			end
-
-			tabInfo.switcherLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-			tabInfo.switcherPadding.PaddingLeft = UDim.new(0, 0)
-			tabInfo.switcherPadding.PaddingRight = UDim.new(0, 0)
-		else
-			tabInfo.switcherName.Size = UDim2.fromScale(1, 0)
-			Tween(tabInfo.switcherName, TweenInfo.new(collapseTweenTime, TweenSettings.EasingStyle), {
-				TextTransparency = tabInfo.isActive and 0.1 or 0.5
-			}):Play()
-
-			if tabInfo.switcherLetter then
-				Tween(tabInfo.switcherLetter, TweenInfo.new(collapseTweenTime, TweenSettings.EasingStyle), {
-					TextTransparency = 1
-				}):Play()
-				tabInfo.switcherLetter.Size = UDim2.fromScale(0, 0)
-			end
-			if tabInfo.switcherImage then
-				Tween(tabInfo.switcherImage, TweenInfo.new(collapseTweenTime, TweenSettings.EasingStyle), {
-					ImageTransparency = tabInfo.isActive and 0.1 or 0.5
-				}):Play()
-			end
-
-			tabInfo.switcherLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
-			tabInfo.switcherPadding.PaddingLeft = UDim.new(0, 24)
-			tabInfo.switcherPadding.PaddingRight = UDim.new(0, 35)
-		end
-	end
-
-	local function applySidebarCollapse(collapsed)
-		-- title block: fade text, center the globe icon
-		Tween(title, TweenInfo.new(collapseTweenTime, TweenSettings.EasingStyle), {
-			TextTransparency = collapsed and 1 or 0.1
-		}):Play()
-		Tween(subtitle, TweenInfo.new(collapseTweenTime, TweenSettings.EasingStyle), {
-			TextTransparency = collapsed and 1 or 0.7
-		}):Play()
-		Tween(globalSettingsButton, TweenInfo.new(collapseTweenTime, TweenSettings.EasingStyle), {
-			Position = collapsed and UDim2.new(0.5, -8, 0.5, -8) or UDim2.fromScale(1, 0.5)
-		}):Play()
-
-		-- user info: hide text, center the headshot
-		Tween(displayName, TweenInfo.new(collapseTweenTime, TweenSettings.EasingStyle), {
-			TextTransparency = collapsed and 1 or 0.1
-		}):Play()
-		Tween(username, TweenInfo.new(collapseTweenTime, TweenSettings.EasingStyle), {
-			TextTransparency = collapsed and 1 or 0.7
-		}):Play()
-		Tween(userAndDisplayFrame, TweenInfo.new(collapseTweenTime, TweenSettings.EasingStyle), {
-			Size = collapsed and UDim2.new(0, 0, 0, 32) or UDim2.new(1, -42, 0, 32)
-		}):Play()
-		Tween(informationGroupUIPadding, TweenInfo.new(collapseTweenTime, TweenSettings.EasingStyle), {
-			PaddingLeft = UDim.new(0, collapsed and 0 or 25)
-		}):Play()
-		informationGroupUIListLayout.HorizontalAlignment = collapsed and Enum.HorizontalAlignment.Center or Enum.HorizontalAlignment.Left
-
-		-- tab switchers: icons/letters only
-		for _, tabInfo in pairs(tabs) do
-			applyTabCollapse(tabInfo, collapsed)
-		end
-	end
-
-	local function checkSidebarCollapse()
-		local collapsedNow = sidebar.AbsoluteSize.X < sidebarCollapseAt
-		if collapsedNow ~= sidebarCollapsed then
-			sidebarCollapsed = collapsedNow
-			applySidebarCollapse(collapsedNow)
-		end
-	end
 
 	-- ── Content reflow on window/sidebar resize ──
 	refreshContentSize = function()
@@ -830,7 +739,6 @@ function MacLib:Window(Settings)
 
 	sidebar:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
 		refreshContentSize()
-		checkSidebarCollapse()
 	end)
 
 	-- ── Window resize grip (bottom-right corner) ──
@@ -1637,31 +1545,6 @@ function MacLib:Window(Settings)
 			tabSwitcherName.Size = UDim2.fromScale(1, 0)
 			tabSwitcherName.Parent = tabSwitcher
 			tabSwitcherName.LayoutOrder = 1
-
-			-- letter fallback shown when an icon-less tab collapses
-			local tabSwitcherLetter
-			if not Settings.Image then
-				tabSwitcherLetter = Instance.new("TextLabel")
-				tabSwitcherLetter.Name = "TabSwitcherLetter"
-				tabSwitcherLetter.FontFace = Font.new(
-					assets.interFont,
-					Enum.FontWeight.SemiBold,
-					Enum.FontStyle.Normal
-				)
-				tabSwitcherLetter.Text = string.upper(string.sub(Settings.Name or "", 1, 1))
-				tabSwitcherLetter.TextColor3 = Color3.fromRGB(255, 255, 255)
-				tabSwitcherLetter.TextSize = 16
-				tabSwitcherLetter.TextTransparency = 1
-				tabSwitcherLetter.TextXAlignment = Enum.TextXAlignment.Center
-				tabSwitcherLetter.AutomaticSize = Enum.AutomaticSize.Y
-				tabSwitcherLetter.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-				tabSwitcherLetter.BackgroundTransparency = 1
-				tabSwitcherLetter.BorderColor3 = Color3.fromRGB(0, 0, 0)
-				tabSwitcherLetter.BorderSizePixel = 0
-				tabSwitcherLetter.Size = UDim2.fromScale(0, 0)
-				tabSwitcherLetter.Parent = tabSwitcher
-				tabSwitcherLetter.LayoutOrder = 1
-			end
 
 			local tabSwitcherUIPadding = Instance.new("UIPadding")
 			tabSwitcherUIPadding.Name = "TabSwitcherUIPadding"
@@ -4804,8 +4687,6 @@ function MacLib:Window(Settings)
 				end
 
 				for i, tabInfo in pairs(tabs) do
-					tabInfo.isActive = (i == tabSwitcher)
-
 					Tween(i, TweenInfo.new(easetime, Enum.EasingStyle.Sine), {
 						BackgroundTransparency = (i == tabSwitcher and 0.98 or 1)
 					}):Play()
@@ -4817,17 +4698,12 @@ function MacLib:Window(Settings)
 					end
 					if tabInfo.switcherImage then
 						Tween(tabInfo.switcherImage, TweenInfo.new(easetime, Enum.EasingStyle.Sine), {
-							ImageTransparency = (sidebarCollapsed and (i == tabSwitcher and 0 or 0.3) or (i == tabSwitcher and 0.1 or 0.5))
+							ImageTransparency = (i == tabSwitcher and 0.1 or 0.5)
 						}):Play()
 					end
 					if tabInfo.switcherName then
 						Tween(tabInfo.switcherName, TweenInfo.new(easetime, Enum.EasingStyle.Sine), {
-							TextTransparency = (sidebarCollapsed and 1 or (i == tabSwitcher and 0.1 or 0.5))
-						}):Play()
-					end
-					if tabInfo.switcherLetter then
-						Tween(tabInfo.switcherLetter, TweenInfo.new(easetime, Enum.EasingStyle.Sine), {
-							TextTransparency = (sidebarCollapsed and (i == tabSwitcher and 0.1 or 0.5) or 1)
+							TextTransparency = (i == tabSwitcher and 0.1 or 0.5)
 						}):Play()
 					end
 				end
@@ -4987,16 +4863,7 @@ function MacLib:Window(Settings)
 				tabStroke = tabSwitcherUIStroke,
 				switcherImage = tabImage,
 				switcherName = tabSwitcherName,
-				switcherLetter = tabSwitcherLetter,
-				switcherLayout = tabSwitcherUIListLayout,
-				switcherPadding = tabSwitcherUIPadding,
-				isActive = false,
 			}
-
-			-- honour a sidebar that's already collapsed when this tab is created
-			if sidebarCollapsed then
-				applyTabCollapse(tabs[tabSwitcher], true)
-			end
 
 			return TabFunctions
 		end
