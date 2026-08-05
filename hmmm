@@ -649,6 +649,7 @@ function MacLib:Window(Settings)
 	content.BorderSizePixel = 0
 	content.Position = UDim2.fromScale(1, 4.69e-08)
 	content.Size = UDim2.new(0, (base.AbsoluteSize.X - sidebar.AbsoluteSize.X), 1, 0)
+	content.ClipsDescendants = true
 
 	local resizingContent = false
 	local defaultSidebarWidth = sidebar.AbsoluteSize.X
@@ -746,7 +747,7 @@ function MacLib:Window(Settings)
 			end
 			if tabInfo.switcherImage then
 				Tween(tabInfo.switcherImage, TweenInfo.new(collapseTweenTime, TweenSettings.EasingStyle), {
-					Size = UDim2.fromOffset(16, 16)
+					ImageTransparency = tabInfo.isActive and 0 or 0.3
 				}):Play()
 			end
 
@@ -767,7 +768,7 @@ function MacLib:Window(Settings)
 			end
 			if tabInfo.switcherImage then
 				Tween(tabInfo.switcherImage, TweenInfo.new(collapseTweenTime, TweenSettings.EasingStyle), {
-					Size = UDim2.fromOffset(18, 18)
+					ImageTransparency = tabInfo.isActive and 0.1 or 0.5
 				}):Play()
 			end
 
@@ -1671,8 +1672,10 @@ function MacLib:Window(Settings)
 
 			tabSwitcher.Parent = sectionTabSwitchers
 
-			local elements1 = Instance.new("Frame")
+			-- CanvasGroup so the whole page can fade/slide in when switching tabs
+			local elements1 = Instance.new("CanvasGroup")
 			elements1.Name = "Elements"
+			elements1.GroupTransparency = 0
 			elements1.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 			elements1.BackgroundTransparency = 1
 			elements1.BorderColor3 = Color3.fromRGB(0, 0, 0)
@@ -1910,7 +1913,8 @@ function MacLib:Window(Settings)
 					toggleName.TextColor3 = Color3.fromRGB(255, 255, 255)
 					toggleName.TextSize = 13
 					toggleName.TextTransparency = 0.5
-					toggleName.TextTruncate = Enum.TextTruncate.AtEnd
+					toggleName.TextTruncate = Enum.TextTruncate.None
+					toggleName.TextWrapped = true
 					toggleName.TextXAlignment = Enum.TextXAlignment.Left
 					toggleName.TextYAlignment = Enum.TextYAlignment.Top
 					toggleName.AnchorPoint = Vector2.new(0, 0.5)
@@ -2688,7 +2692,8 @@ function MacLib:Window(Settings)
 					dropdownName.TextColor3 = Color3.fromRGB(255, 255, 255)
 					dropdownName.TextSize = 13
 					dropdownName.TextTransparency = 0.5
-					dropdownName.TextTruncate = Enum.TextTruncate.SplitWord
+					dropdownName.TextTruncate = Enum.TextTruncate.None
+					dropdownName.TextWrapped = true
 					dropdownName.TextXAlignment = Enum.TextXAlignment.Left
 					dropdownName.AutomaticSize = Enum.AutomaticSize.Y
 					dropdownName.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -4812,7 +4817,7 @@ function MacLib:Window(Settings)
 					end
 					if tabInfo.switcherImage then
 						Tween(tabInfo.switcherImage, TweenInfo.new(easetime, Enum.EasingStyle.Sine), {
-							ImageTransparency = (i == tabSwitcher and 0.1 or 0.5)
+							ImageTransparency = (sidebarCollapsed and (i == tabSwitcher and 0 or 0.3) or (i == tabSwitcher and 0.1 or 0.5))
 						}):Play()
 					end
 					if tabInfo.switcherName then
@@ -4830,6 +4835,15 @@ function MacLib:Window(Settings)
 				tabs[tabSwitcher].tabContent.Parent = content
 				currentTabInstance = tabs[tabSwitcher].tabContent
 				currentTab.Text = Settings.Name
+
+				-- tab switch animation: fade + slide in
+				local selectedContent = tabs[tabSwitcher].tabContent
+				selectedContent.Position = UDim2.fromOffset(0, 73)
+				selectedContent.GroupTransparency = 1
+				Tween(selectedContent, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+					Position = UDim2.fromOffset(0, 63),
+					GroupTransparency = 0
+				}):Play()
 			end
 
 			tabSwitcher.MouseButton1Click:Connect(function()
