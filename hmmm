@@ -45,6 +45,36 @@ local assets = {
 	sliderhead = "rbxassetid://18772834246",
 }
 
+--// Themes
+-- Pick one via Window({ ..., Theme = "Ruby" }). "Default" is an alias for "Dark".
+MacLib.Themes = {
+	Dark = {
+		Base = Color3.fromRGB(15, 15, 15),
+		Surface = Color3.fromRGB(255, 255, 255),
+	},
+	Darker = {
+		Base = Color3.fromRGB(6, 6, 6),
+		Surface = Color3.fromRGB(255, 255, 255),
+	},
+	Ruby = {
+		Base = Color3.fromRGB(22, 9, 12),
+		Surface = Color3.fromRGB(235, 64, 84),
+	},
+	Amethyst = {
+		Base = Color3.fromRGB(16, 10, 24),
+		Surface = Color3.fromRGB(172, 108, 238),
+	},
+	Light = {
+		Base = Color3.fromRGB(238, 238, 242),
+		Surface = Color3.fromRGB(40, 40, 46),
+	},
+	Ocean = {
+		Base = Color3.fromRGB(8, 18, 28),
+		Surface = Color3.fromRGB(96, 168, 224),
+	},
+}
+MacLib.Themes.Default = MacLib.Themes.Dark
+
 --// Functions
 local function GetGui()
 	local newGui = Instance.new("ScreenGui")
@@ -77,6 +107,42 @@ function MacLib:Window(Settings)
 
 	local macLib = GetGui()
 
+	-- theme: recolor every white surface/text/icon into the theme surface color
+	local theme = MacLib.Themes[Settings.Theme or "Dark"] or MacLib.Themes.Dark
+	if theme.Surface ~= Color3.fromRGB(255, 255, 255) then
+		local defaultWhite = Color3.fromRGB(255, 255, 255)
+		local function themeInstance(inst)
+			if inst:IsA("GuiObject") and inst.BackgroundColor3 == defaultWhite then
+				inst.BackgroundColor3 = theme.Surface
+			end
+			if inst:IsA("UIStroke") and inst.Color == defaultWhite then
+				inst.Color = theme.Surface
+			end
+			if inst:IsA("TextLabel") or inst:IsA("TextButton") or inst:IsA("TextBox") then
+				if inst.TextColor3 == defaultWhite then
+					inst.TextColor3 = theme.Surface
+				end
+			end
+			if inst:IsA("ImageLabel") or inst:IsA("ImageButton") then
+				-- leave avatars, the color wheel and checkerboard previews uncolored
+				local uncoloredImages = {
+					Headshot = true,
+					Avatar = true,
+					Wheel = true,
+					NewColor = true,
+					OldColor = true,
+				}
+				if inst.ImageColor3 == defaultWhite and not uncoloredImages[inst.Name] then
+					inst.ImageColor3 = theme.Surface
+				end
+			end
+		end
+		macLib.DescendantAdded:Connect(themeInstance)
+		for _, inst in ipairs(macLib:GetDescendants()) do
+			themeInstance(inst)
+		end
+	end
+
 	local notifications = Instance.new("Frame")
 	notifications.Name = "Notifications"
 	notifications.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -106,7 +172,7 @@ function MacLib:Window(Settings)
 	local base = Instance.new("Frame")
 	base.Name = "Base"
 	base.AnchorPoint = Vector2.new(0.5, 0.5)
-	base.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+	base.BackgroundColor3 = theme.Base
 	base.BackgroundTransparency = acrylicBlur and 0.05 or 0
 	base.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	base.BorderSizePixel = 0
@@ -128,6 +194,37 @@ function MacLib:Window(Settings)
 	baseUIStroke.Color = Color3.fromRGB(255, 255, 255)
 	baseUIStroke.Transparency = 0.9
 	baseUIStroke.Parent = base
+
+	-- soft shadow behind the window (native UIShadow, layered fallback for older clients)
+	local shadowOk = pcall(function()
+		local uiShadow = Instance.new("UIShadow")
+		uiShadow.Name = "BaseUIShadow"
+		uiShadow.BlurRadius = 18
+		uiShadow.Spread = 4
+		uiShadow.Offset = UDim2.fromOffset(0, 6)
+		uiShadow.Color = Color3.new(0, 0, 0)
+		uiShadow.Transparency = 0.5
+		uiShadow.Parent = base
+	end)
+	if not shadowOk then
+		for i = 12, 1, -1 do
+			local t = i / 12 -- 1 = outermost layer
+			local shadowLayer = Instance.new("Frame")
+			shadowLayer.Name = "Shadow" .. i
+			shadowLayer.AnchorPoint = Vector2.new(0.5, 0.5)
+			shadowLayer.Position = UDim2.fromScale(0.5, 0.5)
+			shadowLayer.Size = UDim2.new(1, t * 48, 1, t * 48)
+			shadowLayer.BackgroundColor3 = Color3.new(0, 0, 0)
+			shadowLayer.BackgroundTransparency = 1 - 0.55 * ((1 - t) ^ 2) * 0.35
+			shadowLayer.BorderSizePixel = 0
+			shadowLayer.ZIndex = -i
+			shadowLayer.Parent = base
+
+			local shadowCorner = Instance.new("UICorner")
+			shadowCorner.CornerRadius = UDim.new(0, 10 + t * 24)
+			shadowCorner.Parent = shadowLayer
+		end
+	end
 
 	local sidebar = Instance.new("Frame")
 	sidebar.Name = "Sidebar"
@@ -979,7 +1076,7 @@ function MacLib:Window(Settings)
 	local globalSettings = Instance.new("Frame")
 	globalSettings.Name = "GlobalSettings"
 	globalSettings.AutomaticSize = Enum.AutomaticSize.XY
-	globalSettings.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+	globalSettings.BackgroundColor3 = theme.Base
 	globalSettings.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	globalSettings.BorderSizePixel = 0
 	globalSettings.Position = UDim2.fromScale(0.298, 0.104)
@@ -3210,7 +3307,7 @@ function MacLib:Window(Settings)
 					prompt.Name = "Prompt"
 					prompt.AnchorPoint = Vector2.new(0.5, 0.5)
 					prompt.AutomaticSize = Enum.AutomaticSize.Y
-					prompt.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+					prompt.BackgroundColor3 = theme.Base
 					prompt.BorderColor3 = Color3.fromRGB(0, 0, 0)
 					prompt.BorderSizePixel = 0
 					prompt.Position = UDim2.fromScale(0.5, 0.5)
@@ -4878,7 +4975,7 @@ function MacLib:Window(Settings)
 		notification.Name = "Notification"
 		notification.AnchorPoint = Vector2.new(0.5, 0.5)
 		notification.AutomaticSize = Enum.AutomaticSize.Y
-		notification.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+		notification.BackgroundColor3 = theme.Base
 		notification.BorderColor3 = Color3.fromRGB(0, 0, 0)
 		notification.BorderSizePixel = 0
 		notification.Position = UDim2.fromScale(0.5, 0.5)
@@ -5113,7 +5210,7 @@ function MacLib:Window(Settings)
 		prompt.Name = "Prompt"
 		prompt.AnchorPoint = Vector2.new(0.5, 0.5)
 		prompt.AutomaticSize = Enum.AutomaticSize.Y
-		prompt.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+		prompt.BackgroundColor3 = theme.Base
 		prompt.BorderColor3 = Color3.fromRGB(0, 0, 0)
 		prompt.BorderSizePixel = 0
 		prompt.Position = UDim2.fromScale(0.5, 0.5)
