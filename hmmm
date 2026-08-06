@@ -51,26 +51,38 @@ MacLib.Themes = {
 	Dark = {
 		Base = Color3.fromRGB(15, 15, 15),
 		Surface = Color3.fromRGB(255, 255, 255),
+		Accent = Color3.fromRGB(87, 86, 86),   -- toggle/slider track
+		Button = Color3.fromRGB(25, 25, 25),   -- dialog/prompt buttons
 	},
 	Darker = {
 		Base = Color3.fromRGB(6, 6, 6),
 		Surface = Color3.fromRGB(255, 255, 255),
+		Accent = Color3.fromRGB(87, 86, 86),
+		Button = Color3.fromRGB(20, 20, 20),
 	},
 	Ruby = {
 		Base = Color3.fromRGB(22, 9, 12),
 		Surface = Color3.fromRGB(235, 64, 84),
+		Accent = Color3.fromRGB(172, 45, 62),
+		Button = Color3.fromRGB(45, 18, 24),
 	},
 	Amethyst = {
 		Base = Color3.fromRGB(16, 10, 24),
 		Surface = Color3.fromRGB(172, 108, 238),
+		Accent = Color3.fromRGB(116, 72, 168),
+		Button = Color3.fromRGB(32, 20, 48),
 	},
 	Light = {
-		Base = Color3.fromRGB(238, 238, 242),
-		Surface = Color3.fromRGB(40, 40, 46),
+		Base = Color3.fromRGB(255, 255, 255),
+		Surface = Color3.fromRGB(35, 35, 40),
+		Accent = Color3.fromRGB(186, 186, 194),
+		Button = Color3.fromRGB(228, 228, 232),
 	},
 	Ocean = {
 		Base = Color3.fromRGB(8, 18, 28),
 		Surface = Color3.fromRGB(96, 168, 224),
+		Accent = Color3.fromRGB(60, 112, 154),
+		Button = Color3.fromRGB(16, 32, 48),
 	},
 }
 MacLib.Themes.Default = MacLib.Themes.Dark
@@ -99,6 +111,7 @@ end
 --// Library Functions
 function MacLib:Window(Settings)
 	local WindowFunctions = {Settings = Settings}
+	unloaded = false -- reset so a rebuilt window (e.g. theme switch) gets its acrylic blur back
 	if Settings.AcrylicBlur ~= nil then
 		acrylicBlur = Settings.AcrylicBlur
 	else
@@ -111,8 +124,15 @@ function MacLib:Window(Settings)
 	local theme = MacLib.Themes[Settings.Theme or "Dark"] or MacLib.Themes.Dark
 	if theme.Surface ~= Color3.fromRGB(255, 255, 255) then
 		local defaultWhite = Color3.fromRGB(255, 255, 255)
+		-- frames that are intentionally set to theme.Base — never retint them
+		local themedBaseFrames = {
+			Base = true,
+			Prompt = true,
+			GlobalSettings = true,
+			Notification = true,
+		}
 		local function themeInstance(inst)
-			if inst:IsA("GuiObject") and inst.BackgroundColor3 == defaultWhite then
+			if inst:IsA("GuiObject") and inst.BackgroundColor3 == defaultWhite and not themedBaseFrames[inst.Name] then
 				inst.BackgroundColor3 = theme.Surface
 			end
 			if inst:IsA("UIStroke") and inst.Color == defaultWhite then
@@ -1910,7 +1930,7 @@ function MacLib:Window(Settings)
 					local toggle1 = Instance.new("ImageButton")
 					toggle1.Name = "Toggle"
 					toggle1.Image = assets.toggleBackground
-					toggle1.ImageColor3 = Color3.fromRGB(87, 86, 86)
+					toggle1.ImageColor3 = theme.Accent
 					toggle1.AutoButtonColor = false
 					toggle1.AnchorPoint = Vector2.new(1, 0.5)
 					toggle1.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -2103,7 +2123,7 @@ function MacLib:Window(Settings)
 					local sliderBar = Instance.new("ImageLabel")
 					sliderBar.Name = "SliderBar"
 					sliderBar.Image = assets.sliderbar
-					sliderBar.ImageColor3 = Color3.fromRGB(87, 86, 86)
+					sliderBar.ImageColor3 = theme.Accent
 					sliderBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 					sliderBar.BackgroundTransparency = 1
 					sliderBar.BorderColor3 = Color3.fromRGB(0, 0, 0)
@@ -4014,7 +4034,7 @@ function MacLib:Window(Settings)
 					confirm.TextTruncate = Enum.TextTruncate.AtEnd
 					confirm.AutoButtonColor = false
 					confirm.AutomaticSize = Enum.AutomaticSize.Y
-					confirm.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+					confirm.BackgroundColor3 = theme.Button
 					confirm.BorderColor3 = Color3.fromRGB(0, 0, 0)
 					confirm.BorderSizePixel = 0
 					confirm.Size = UDim2.fromScale(1, 0)
@@ -4048,7 +4068,7 @@ function MacLib:Window(Settings)
 					cancel.TextTruncate = Enum.TextTruncate.AtEnd
 					cancel.AutoButtonColor = false
 					cancel.AutomaticSize = Enum.AutomaticSize.Y
-					cancel.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+					cancel.BackgroundColor3 = theme.Button
 					cancel.BorderColor3 = Color3.fromRGB(0, 0, 0)
 					cancel.BorderSizePixel = 0
 					cancel.Size = UDim2.fromScale(1, 0)
@@ -5362,7 +5382,7 @@ function MacLib:Window(Settings)
 			button.TextTruncate = Enum.TextTruncate.AtEnd
 			button.AutoButtonColor = false
 			button.AutomaticSize = Enum.AutomaticSize.Y
-			button.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+			button.BackgroundColor3 = theme.Button
 			button.BorderColor3 = Color3.fromRGB(0, 0, 0)
 			button.BorderSizePixel = 0
 			button.Size = UDim2.fromScale(1, 0)
